@@ -56,7 +56,7 @@ bool RangePass::unionRange(StringRef sID, const CRange &R,
 	}
 	
 	bool changed = true;
-	RangeMap::iterator it = IntRanges.find(sID);
+	RangeMap::iterator it = IntRanges.find(sID.str());
 	if (it != IntRanges.end()) {
 		changed = it->second.safeUnion(R);
 		if (changed && sID == WatchID)
@@ -67,7 +67,7 @@ bool RangePass::unionRange(StringRef sID, const CRange &R,
 			errs() << sID << " = " << R << "\n";
 	}
 	if (changed)
-		Changes.insert(sID);
+		Changes.insert(sID.str());
 	return changed;
 }
 

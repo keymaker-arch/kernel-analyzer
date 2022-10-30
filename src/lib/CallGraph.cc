@@ -121,8 +121,11 @@ bool CallGraphPass::isCompatibleType(Type *T1, Type *T2) {
     }
 }
 
+/* fix by keymaker 20221030: CallSite is removed in newer version of LLVM, replace it with CallBase
+   this function iterates the argument of a call site, and compare them with functions in FS.
+*/
 bool CallGraphPass::findCalleesByType(CallInst *CI, FuncSet &FS) {
-    CallSite CS(CI);
+    // CallSite CS(CI);
     //errs() << *CI << "\n";
     for (Function *F : Ctx->AddressTakenFuncs) {
 
@@ -130,7 +133,8 @@ bool CallGraphPass::findCalleesByType(CallInst *CI, FuncSet &FS) {
         if (F->getFunctionType()->isVarArg()) {
             //errs() << "VarArg: " << F->getName() << "\n";
             //report_fatal_error("VarArg address taken function\n");
-        } else if (F->arg_size() != CS.arg_size()) {
+        // } else if (F->arg_size() != CS.arg_size()) {
+        } else if (F->arg_size() != CI->arg_size()) {
             //errs() << "ArgNum mismatch: " << F.getName() << "\n";
             continue;
         } else if (!isCompatibleType(F->getReturnType(), CI->getType())) {
@@ -144,7 +148,8 @@ bool CallGraphPass::findCalleesByType(CallInst *CI, FuncSet &FS) {
 
         // type matching on args
         bool Matched = true;
-        CallSite::arg_iterator AI = CS.arg_begin();
+        // CallSite::arg_iterator AI = CS.arg_begin();
+        User::op_iterator AI = CI->arg_begin();
         for (Function::arg_iterator FI = F->arg_begin(), FE = F->arg_end();
              FI != FE; ++FI, ++AI) {
             // check type mis-match
@@ -272,7 +277,7 @@ bool CallGraphPass::findFunctions(Value *V, FuncSet &S,
         // update callsite info first
         FuncSet &FS = Ctx->Callees[CI];
         //FS.setCallerInfo(CI, &Ctx->Callers);
-        findFunctions(CI->getCalledValue(), FS);
+        findFunctions(CI->getCalledOperand(), FS);
         bool Changed = false;
         for (Function *CF : FS) {
             bool InsertEmpty = isFunctionPointer(CI->getType());
@@ -322,7 +327,7 @@ bool CallGraphPass::findCallees(CallInst *CI, FuncSet &FS) {
     return findCalleesByType(CI, FS);
 #else
     // use assignments based approach to find possible targets
-    return findFunctions(CI->getCalledValue(), FS);
+    return findFunctions(CI->getCalledOperand(), FS);
 #endif
 }
 
@@ -526,7 +531,8 @@ void CallGraphPass::dumpCallees() {
         CallInst *CI = i->first;
         FuncSet &v = i->second;
         // only dump indirect call?
-        if (CI->isInlineAsm() || CI->getCalledFunction() /*|| v.empty()*/)
+        // if (CI->isInlineAsm() || CI->getCalledFunction() /*|| v.empty()*/)
+        if (CI->isInlineAsm() /*|| CI->getCalledFunction() || v.empty()*/)
              continue;
 
         OS << "CS:" << *CI << "\n";
@@ -552,7 +558,7 @@ void CallGraphPass::dumpCallees() {
         }
         OS << "\n";
         if (v.empty()) {
-            OS << "!!EMPTY =>" << *CI->getCalledValue()<<"\n";
+            OS << "!!EMPTY =>" << *CI->getCalledOperand()<<"\n";
             OS<< "Uninitialized function pointer is dereferenced!\n";
         }
     }

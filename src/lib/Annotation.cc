@@ -262,11 +262,25 @@ std::string getStructId(Value *PVal, User::op_iterator &IS, User::op_iterator &I
 	Type *PTy = PVal->getType();
 	StructType *STy = nullptr;
 	for (++IE; IS != IE; ++IS) {
-		CompositeType *CT = dyn_cast<CompositeType>(PTy);
-		if (!CT) break;
-		if ((STy = dyn_cast<StructType>(CT))) break;
-		if (!CT->indexValid(*IS)) break;
-		PTy = CT->getTypeAtIndex(*IS);
+		/* fix by keymaker 20221030: get the struct type by iterating throught the passed in value PVal
+			 the PVal is the pointer operand of getelementptr() inst, and it should be either array or struct
+		*/
+		// CompositeType *CT = dyn_cast<CompositeType>(PTy);
+		// if (!CT) break;
+		// if ((STy = dyn_cast<StructType>(CT))) break;
+		// if (!CT->indexValid(*IS)) break;
+		// PTy = CT->getTypeAtIndex(*IS);
+		if(STy = dyn_cast<StructType>(PTy)){
+			break;
+		}else if(auto* ATy = dyn_cast<ArrayType>(PTy)){
+			PTy = ATy->getElementType();
+		}else if(auto* VTy = dyn_cast<VectorType>(PTy)){
+			PTy = VTy->getElementType();
+		}else{
+			errs() << "[CRITICAL] getStructId: fix this again: " << *PVal << "\n";
+
+		}
+
 	}
 
 	if (STy && !STy->isOpaque() && !STy->isLiteral()) {
@@ -373,7 +387,7 @@ std::string getAnonStructId(Value *V, Module *M, StringRef Prefix) {
 		break;
 	}
 
-	return Prefix;
+	return Prefix.str();
 }
 
 std::string getAnnotation(Value *V, Module *M) {
@@ -440,7 +454,7 @@ std::string getAnnotation(Value *V, Module *M) {
 		}
 
 		if (CallInst *CI = dyn_cast<CallInst>(v)) {
-			Value *CV = CI->getCalledValue();
+			Value *CV = CI->getCalledOperand();
 			// handle simple cast expr
 			if (ConstantExpr *CE = dyn_cast<ConstantExpr>(CV)) {
 				if (CE->isCast())

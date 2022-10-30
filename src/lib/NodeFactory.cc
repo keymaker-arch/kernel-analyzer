@@ -201,12 +201,12 @@ NodeIndex AndersNodeFactory::getObjectNodeFor(const Value* val) {
         const GlobalValue* gval = dyn_cast<GlobalValue>(c);
         if (gval && gval->isDeclaration()) {
             if (isa<GlobalVariable>(gval)) {
-                auto itr = gobjMap->find(gval->getName());
+                auto itr = gobjMap->find(gval->getName().str());
                 if(itr != gobjMap->end()) {
                     val = itr->second;
                 }
             } else if (isa<Function>(gval)) {
-                auto itr = funcMap->find(gval->getName());
+                auto itr = funcMap->find(gval->getName().str());
                 if (itr != funcMap->end())
                     val = itr->second;
             }

@@ -19,7 +19,7 @@
 #include <llvm/IR/InlineAsm.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/CallSite.h>
+// #include <llvm/IR/CallSite.h>
 #include <llvm/Pass.h>
 #include <llvm/ADT/Triple.h>
 #include <llvm/ADT/SmallVector.h>
@@ -195,7 +195,7 @@ bool SafeStackPass::isSafeCall(CallInst *CI, unsigned ArgNo, uint64_t Size) {
 				FuncName = SyS;
 			}
 
-			auto itr = Ctx->Funcs.find(FuncName);
+			auto itr = Ctx->Funcs.find(FuncName.str());
 			if (itr != Ctx->Funcs.end())
 				F = itr->second;
 
