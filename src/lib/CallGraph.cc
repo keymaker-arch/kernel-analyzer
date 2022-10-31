@@ -23,6 +23,7 @@
 #include "Annotation.h"
 
 //#define TYPE_BASED
+#define IGNORE_INDIRECT_CALL // ignore all indirect call
 
 using namespace llvm;
 
@@ -317,7 +318,9 @@ bool CallGraphPass::findCallees(CallInst *CI, FuncSet &FS) {
         CF = getFuncDef(CF);
         return FS.insert(CF).second;
     }
-
+#ifdef IGNORE_INDIRECT_CALL
+    return false;
+#endif
     // save called values for point-to analysis
     Ctx->IndirectCallInsts.push_back(CI);
 
@@ -329,6 +332,7 @@ bool CallGraphPass::findCallees(CallInst *CI, FuncSet &FS) {
     // use assignments based approach to find possible targets
     return findFunctions(CI->getCalledOperand(), FS);
 #endif
+
 }
 
 bool CallGraphPass::runOnFunction(Function *F) {
@@ -347,7 +351,7 @@ bool CallGraphPass::runOnFunction(Function *F) {
             FuncSet &FS = Ctx->Callees[CI];
             if (!findCallees(CI, FS))
                 continue;
-
+#ifndef IGNORE_INDIRECT_CALL
 #ifndef TYPE_BASED
             // looking for function pointer arguments
             for (unsigned no = 0, ne = CI->getNumArgOperands(); no != ne; ++no) {
@@ -371,7 +375,9 @@ bool CallGraphPass::runOnFunction(Function *F) {
                 }
             }
 #endif
+#endif
         }
+#ifndef IGNORE_INDIRECT_CALL
 #ifndef TYPE_BASED
         if (StoreInst *SI = dyn_cast<StoreInst>(I)) {
             // stores to function pointers
@@ -396,6 +402,7 @@ bool CallGraphPass::runOnFunction(Function *F) {
                 Changed |= mergeFuncSet(Id, FS, isFunctionPointer(V->getType()));
             }
         }
+#endif
 #endif
     }
 
