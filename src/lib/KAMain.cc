@@ -32,6 +32,7 @@
 #include "CallGraph.h"
 #include "Pass.h"
 #include "PointTo.h"
+#include "Sprintf.h"
 
 using namespace llvm;
 
@@ -41,6 +42,14 @@ cl::list<std::string> InputFilenames(
 cl::opt<unsigned> VerboseLevel(
   "htleak-verbose", cl::desc("Print information about actions taken"),
   cl::init(0));
+
+cl::opt<bool> DoRange(
+  "range", cl::desc("Run range analysis"), cl::NotHidden, cl::init(false)
+);
+
+cl::opt<bool> DoSprintf(
+  "sprintf", cl::desc("Run sprintf analysis"), cl::NotHidden, cl::init(false)
+);
 
 cl::opt<bool> DumpCallees(
   "dump-call-graph", cl::desc("Dump call graph"), cl::NotHidden, cl::init(false));
@@ -196,10 +205,24 @@ int main(int argc, char **argv) {
   if (DumpCallers)
     CGPass.dumpCallers();
 
+  if(DoRange){
+    RangePass RPass(&GlobalCtx);
+    RPass.run(GlobalCtx.Modules);
+    RPass.dumpRange();
+  }
+
+  if(DoSprintf){
+    SprintfPass SFPass(&GlobalCtx);
+    SFPass.run();
+    SFPass.dump();
+  }
+
   if (DoSafeStack) {
 #ifdef DO_RANGE_ANALYSIS
     RangePass RPass(&GlobalCtx);
     RPass.run(GlobalCtx.Modules);
+    SprintfPass SPPass(&GlobalCtx);
+
 #endif
 
     SafeStackPass SSPass(&GlobalCtx);

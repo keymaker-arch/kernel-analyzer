@@ -8,6 +8,8 @@ set (KASource
   LinuxSS.cc
   NodeFactory.cc
   PointTo.cc
+  Sprintf.cc
+  BufSizer.cc
 )
 
 # Build libraries.
